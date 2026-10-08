@@ -20,6 +20,68 @@ def load_starter_products(inventory):
 #====================
 # data manipulation
 #====================
+def find_product(inventory, product_id):
+    """Return the product dictionary matching product_id, or None."""
+    for product in inventory:
+        if product["id"].lower() == product_id.lower():
+            return product
+    return None
+
+
+def add_product(inventory, product_id, name, price, stock):
+    """Add a new product dictionary to the inventory list."""
+    if find_product(inventory, product_id) is not None:
+        print("Product ID already exists.")
+        return False
+    inventory.append({
+        "id": product_id,
+        "name": name,
+        "price": price,
+        "stock": stock,
+    })
+    print("Product added successfully!")
+    return True
+
+
+def update_stock(inventory, product_id, new_stock):
+    """Update the stock of an existing product."""
+    product = find_product(inventory, product_id)
+    if product is None:
+        print("Product not found.")
+        return False
+    product["stock"] = new_stock
+    print("Stock updated successfully!")
+    return True
+
+
+def search_product(inventory, product_id):
+    """Display one product's details, or a not-found message."""
+    product = find_product(inventory, product_id)
+    if product is None:
+        print("Product not found.")
+        return None
+    print("Product Found")
+    print("-" * 48)
+    print("ID: " + product["id"])
+    print("Name: " + product["name"])
+    print("Price: $" + format(product["price"], ".2f"))
+    print("Stock: " + str(product["stock"]))
+    print("-" * 48)
+    return product
+
+
+def display_all(inventory):
+    """Display every product in the inventory."""
+    print("Current Inventory")
+    print("-" * 48)
+    if not inventory:
+        print("Inventory is empty.")
+    for product in inventory:
+        print("ID: " + product["id"]
+              + " | Name: " + product["name"]
+              + " | Price: $" + format(product["price"], ".2f")
+              + " | Stock: " + str(product["stock"]))
+    print("-" * 48)
 
 def get_valid_input():
         user_input = input("Enter stock quantity or type quit to exit: ")
