@@ -1,9 +1,8 @@
-#global constant
-MAX_CAPACITY=500
-TAX_RATE = 0.1
-INVENTORY_FILE = "data/inventory.json"
-
 import json
+
+# Global constant
+INVENTORY_FILE = "inventory.json"
+
 
 # ---------------------------------------------------------------
 # Data persistence
@@ -19,6 +18,9 @@ def load_inventory():
     except FileNotFoundError:
         print(INVENTORY_FILE + " not found. Starting with an empty inventory.")
         return []
+    except (json.JSONDecodeError, OSError):
+        print("Could not read " + INVENTORY_FILE + ". Starting with an empty inventory.")
+        return []
 
 
 def save_inventory(inventory):
@@ -33,23 +35,39 @@ def save_inventory(inventory):
         print("Error saving inventory: " + str(error))
         return False
 
-# ==================
-# data representation
-# ==================
 
-def load_starter_products(inventory):
-    """Seed three starter products when there is no saved inventory."""
-    starter = [
-        ("P001", "Laptop", 1200.00, 15),
-        ("P002", "Mouse", 25.50, 40),
-        ("P003", "Keyboard", 45.00, 25),
-    ]
-    for product_id, name, price, stock in starter:
-        inventory.append({"id": product_id, "name": name, "price": price, "stock": stock})
+# ---------------------------------------------------------------
+# Input helpers
+# ---------------------------------------------------------------
+def get_float(prompt):
+    """Keep asking until the user enters a non-negative number."""
+    while True:
+        try:
+            value = float(input(prompt))
+            if value < 0:
+                print("Invalid input. Please enter a non-negative number.")
+                continue
+            return value
+        except ValueError:
+            print("Invalid input. Please enter a number.")
 
-#====================
-# data manipulation
-#====================
+
+def get_int(prompt):
+    """Keep asking until the user enters a non-negative whole number."""
+    while True:
+        try:
+            value = int(float(input(prompt)))  # decimals are truncated
+            if value < 0:
+                print("Invalid input. Please enter a non-negative number.")
+                continue
+            return value
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
+
+# ---------------------------------------------------------------
+# Data manipulation (CRUD)
+# ---------------------------------------------------------------
 def find_product(inventory, product_id):
     """Return the product dictionary matching product_id, or None."""
     for product in inventory:
@@ -113,8 +131,9 @@ def display_all(inventory):
               + " | Stock: " + str(product["stock"]))
     print("-" * 48)
 
+
 # ---------------------------------------------------------------
-# Menu GUI
+# Menu handlers
 # ---------------------------------------------------------------
 def handle_add(inventory):
     print("Add New Product")
@@ -162,89 +181,56 @@ def print_menu():
     print("----------------------------")
 
 
+def load_starter_products(inventory):
+    """Seed three starter products when there is no saved inventory."""
+    starter = [
+        ("P001", "Laptop", 1200.00, 15),
+        ("P002", "Mouse", 25.50, 40),
+        ("P003", "Keyboard", 45.00, 25),
+    ]
+    for product_id, name, price, stock in starter:
+        inventory.append({"id": product_id, "name": name, "price": price, "stock": stock})
 
 
-def get_valid_input():
-        user_input = input("Enter stock quantity or type quit to exit: ")
-
-        if user_input == "quit":
-            return "quit"
-        try:
-            quantity = int(float(user_input)) # will accept decimal inputs, only ignore decimal and takes integer value
-        except ValueError:
-            print("Invalid input. please enter a number or type quit.")
-            return None # invalidate output to avoid any rejected input to be added in data
-
-        if quantity < 0 :
-            print("invalid input. please enter a non-negative stock quantity")
-            return None
-
-        return quantity
-
-def process_delivery(current_total, new_value):
-    return current_total + new_value
-
-def calculate_tax(amount):
-    return amount * TAX_RATE
-
-def generate_report(total_units,rejected_attempts):
-    print("\n--- Final Report ---")
-    print("Total Deliveries Processed: " + str(total_units))
-    print("Number of Failed/Rejected Entries: " + str(rejected_attempts))
-
-#defining math of main into callable functions
-def check_capacity(inventory, quantity):
-    """Returns True if adding quantity would exceed MAX_CAPACITY."""
-    return inventory + quantity > MAX_CAPACITY
-
-
-def print_overstock_alert():
-    print("Over stock alert! Maximum capacity is " + str(MAX_CAPACITY))
-
-
-def print_delivery_summary(quantity, inventory, tax):
-    print("Added " + str(quantity) + " items to inventory. Total Inventory: " + str(inventory))
-    print("Tax on this delivery: $" + str(round(tax, 2)))
-
-
-def print_final_summary(deliveries_processed, rejected, total_tax_collected):
-    generate_report(deliveries_processed, rejected)
-    print("Total tax collected: $" + str(round(total_tax_collected, 2)))
-
-
-
+# ---------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------
 def main():
-    inventory, transaction_history = load_inventory()
-    deliveries_processed = 0
-    rejected = 0
-    total_tax_collected = 0.0
+    print("=" * 40)
+    print("INVENTORY MANAGEMENT SYSTEM")
+    print("=" * 40)
+
+    inventory = load_inventory()
+    if not inventory:
+        load_starter_products(inventory)
+        print("Loaded 3 starter products.")
+
+    print_menu()
 
     while True:
-        result = get_valid_input()
+        try:
+            option = input("Enter option: ").strip()
+        except EOFError:
+            option = "6"
 
-        if result == "quit":
-            save_inventory(inventory, transaction_history)
+        if option == "1":
+            display_all(inventory)
+        elif option == "2":
+            handle_add(inventory)
+        elif option == "3":
+            handle_update(inventory)
+        elif option == "4":
+            handle_search(inventory)
+        elif option == "5":
+            save_inventory(inventory)
+        elif option == "6":
+            print("Saving inventory before exit...")
+            save_inventory(inventory)
+            print("Thank you for using Inventory Management System.")
+            print("Program terminated.")
             break
-
-        if result is None:
-            rejected += 1
-            continue
-
-        quantity = result
-        
-        if check_capacity(inventory, quantity):
-            print_overstock_alert()
-            rejected += 1
-            break
-
-        inventory = process_delivery(inventory, quantity)
-        tax = calculate_tax(quantity)
-        total_tax_collected += tax
-        deliveries_processed += 1
-
-        print_delivery_summary(quantity, inventory, tax)
-
-    print_final_summary(deliveries_processed, rejected, total_tax_collected)
+        else:
+            print("Invalid option. Please choose 1-6.")
 
 
 if __name__ == "__main__":
