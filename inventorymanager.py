@@ -1,7 +1,37 @@
 #global constant
 MAX_CAPACITY=500
 TAX_RATE = 0.1
-INVENTORY_FILE = "data/inventory.txt"
+INVENTORY_FILE = "data/inventory.json"
+
+import json
+
+# ---------------------------------------------------------------
+# Data persistence
+# ---------------------------------------------------------------
+def load_inventory():
+    """Load inventory from INVENTORY_FILE if it exists, else return an empty list."""
+    try:
+        with open(INVENTORY_FILE, "r") as file:
+            inventory = json.load(file)
+        print(INVENTORY_FILE + " found.")
+        print("Inventory loaded successfully.")
+        return inventory
+    except FileNotFoundError:
+        print(INVENTORY_FILE + " not found. Starting with an empty inventory.")
+        return []
+
+
+def save_inventory(inventory):
+    """Write the inventory list to INVENTORY_FILE as JSON."""
+    print("Saving inventory...")
+    try:
+        with open(INVENTORY_FILE, "w") as file:
+            json.dump(inventory, file, indent=4)
+        print("Inventory saved successfully to " + INVENTORY_FILE + ".")
+        return True
+    except OSError as error:
+        print("Error saving inventory: " + str(error))
+        return False
 
 # ==================
 # data representation
@@ -83,6 +113,57 @@ def display_all(inventory):
               + " | Stock: " + str(product["stock"]))
     print("-" * 48)
 
+# ---------------------------------------------------------------
+# Menu GUI
+# ---------------------------------------------------------------
+def handle_add(inventory):
+    print("Add New Product")
+    product_id = input("Product ID: ").strip()
+    if product_id == "":
+        print("Product ID cannot be empty.")
+        return
+    name = input("Product Name: ").strip()
+    if name == "":
+        print("Product name cannot be empty.")
+        return
+    price = get_float("Price: ")
+    stock = get_int("Stock Quantity: ")
+    add_product(inventory, product_id, name, price, stock)
+
+
+def handle_update(inventory):
+    print("Update Stock")
+    product_id = input("Enter Product ID: ").strip()
+    product = find_product(inventory, product_id)
+    if product is None:
+        print("Product not found.")
+        return
+    print("Product Found:")
+    print("Name: " + product["name"])
+    print("Current Stock: " + str(product["stock"]))
+    new_stock = get_int("New Stock Quantity: ")
+    update_stock(inventory, product_id, new_stock)
+
+
+def handle_search(inventory):
+    print("Search Product")
+    product_id = input("Enter Product ID: ").strip()
+    search_product(inventory, product_id)
+
+
+def print_menu():
+    print("\n----------- MENU -----------")
+    print("1. Display All Products")
+    print("2. Add Product")
+    print("3. Update Stock")
+    print("4. Search Product")
+    print("5. Save Inventory")
+    print("6. Exit")
+    print("----------------------------")
+
+
+
+
 def get_valid_input():
         user_input = input("Enter stock quantity or type quit to exit: ")
 
@@ -129,23 +210,6 @@ def print_delivery_summary(quantity, inventory, tax):
 def print_final_summary(deliveries_processed, rejected, total_tax_collected):
     generate_report(deliveries_processed, rejected)
     print("Total tax collected: $" + str(round(total_tax_collected, 2)))
-
-def load_inventory():
-    with open(INVENTORY_FILE, "r") as file:
-        data = file.readlines()
-
-    inventory_total=int(float(data[0].strip()))
-    history=[int(float(line.strip())) for line in data[1:] if  data.strip() != ""]
-    #history equals float line.strip() where read line, 
-    #continue doing this as long there is no blank on the data
-
-    return inventory_total, history
-
-def save_inventory(quantity, inventory):
-    with open(INVENTORY_FILE, "w") as file: #refer to inventory.txt, init as var file
-        file.write(str(quantity) + "\n")    #call write function to input function var
-        for amount in inventory:
-            file.write(str(amount)) + "\n"
 
 
 
